@@ -8,48 +8,49 @@
 <body>
     <div><input id="url_input" /><button onclick="convert()">convert</button></div>
     <div><input id="url_converted" /><button onclick="copy()">copy to clipboard</button>
-        <p id="copied_label"></p>
+        <p id="info_label"></p>
     </div>
     <script>
         function convert() {
             var urlString = document.getElementById("url_input").value;
-            var found = /https:\/\/teams\.microsoft\.com\/_#\/(?<fileType>.*?)\/viewer\/teams\/(?<fileUrl>.*)\?/g.exec(urlString);
-            if (!found || !found.groups || !found.groups.fileType || !found.groups.fileUrl) {
-                console.log("cannot extract information from url");
+            var fileId;
+            var fileType;
+            var objectUrl;
+            if (urlString.match(/https:\/\/[^.]*?\.sharepoint\.com\//)) {
+                var url = new URL(urlString);
+                fileId = url.searchParams.get("d");
+                fileType = url.pathname.split(".").pop().trim();
+                objectUrl = url.href;
+            } else if (urlString.startsWith("https://teams.microsoft.com/_#/")) {
+                var found = /https:\/\/teams\.microsoft\.com\/_#\/(?<fileType>.*?)\/viewer\/teams\/(?<fileUrl>.*)\?/g.exec(urlString);
+                if (found && found.groups && found.groups.fileType && found.groups.fileUrl) {
+                    fileType = found.groups.fileType;
+                    objectUrl = found.groups.fileUrl;
+                }
+                var url = new URL(urlString.replace("https://teams.microsoft.com/_#/", "https://teams.microsoft.com/_/"));
+                fileId = url.searchParams.get("fileId");
+            }
+            if (!fileId || !fileType || !objectUrl) {
+                document.getElementById("info_label").innerText = "cannot extract information from url!";
                 return;
             }
-            var url = new URL(urlString.replace("https://teams.microsoft.com/_#/", "https://teams.microsoft.com/_/"));
-            var threadId = url.searchParams.get("threadId");
-            var baseUrl = url.searchParams.get("baseUrl");
-            var fileId = url.searchParams.get("fileId");
-            var ctx = url.searchParams.get("ctx");
-            var rootContext = url.searchParams.get("rootContext");
-            var viewerAction = url.searchParams.get("viewerAction");
-
-            const params = new URLSearchParams({
-                fileType: found.groups.fileType,
-                objectUrl: found.groups.fileUrl,
-                threadId: threadId,
-                baseUrl: baseUrl,
+            var params = new URLSearchParams({
+                fileType: fileType,
+                objectUrl: objectUrl,
                 fileId: fileId,
-                ctx: ctx,
-                rootContext: rootContext,
-                viewerAction: viewerAction,
                 serviceName: "teams",
             });
-
             var convertedUrl = new URL("https://teams.microsoft.com/l/file/" + fileId + "?" + params.toString());
             console.log(convertedUrl.toString());
             document.getElementById("url_converted").value = convertedUrl.toString();
-            document.getElementById("copied_label").innerText = "";
+            document.getElementById("info_label").innerText = "";
         }
-
         function copy() {
             var copyText = document.getElementById("url_converted");
             copyText.select();
             copyText.setSelectionRange(0, 99999);
             navigator.clipboard.writeText(copyText.value);
-            document.getElementById("copied_label").innerText = "copied!";
+            document.getElementById("info_label").innerText = "copied!";
         }
     </script>
 </body>
