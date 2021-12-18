@@ -1,0 +1,57 @@
+<!DOCTYPE HTML>
+<html>
+
+<head>
+    <title>MS Teams In-App URL Converter</title>
+</head>
+
+<body>
+    <div><input id="url_input" /><button onclick="convert()">convert</button></div>
+    <div><input id="url_converted" /><button onclick="copy()">copy to clipboard</button>
+        <p id="copied_label"></p>
+    </div>
+    <script>
+        function convert() {
+            var urlString = document.getElementById("url_input").value;
+            var found = /https:\/\/teams\.microsoft\.com\/_#\/(?<fileType>.*?)\/viewer\/teams\/(?<fileUrl>.*)\?/g.exec(urlString);
+            if (!found || !found.groups || !found.groups.fileType || !found.groups.fileUrl) {
+                console.log("cannot extract information from url");
+                return;
+            }
+            var url = new URL(urlString.replace("https://teams.microsoft.com/_#/", "https://teams.microsoft.com/_/"));
+            var threadId = url.searchParams.get("threadId");
+            var baseUrl = url.searchParams.get("baseUrl");
+            var fileId = url.searchParams.get("fileId");
+            var ctx = url.searchParams.get("ctx");
+            var rootContext = url.searchParams.get("rootContext");
+            var viewerAction = url.searchParams.get("viewerAction");
+
+            const params = new URLSearchParams({
+                fileType: found.groups.fileType,
+                objectUrl: found.groups.fileUrl,
+                threadId: threadId,
+                baseUrl: baseUrl,
+                fileId: fileId,
+                ctx: ctx,
+                rootContext: rootContext,
+                viewerAction: viewerAction,
+                serviceName: "teams",
+            });
+
+            var convertedUrl = new URL("https://teams.microsoft.com/l/file/" + fileId + "?" + params.toString());
+            console.log(convertedUrl.toString());
+            document.getElementById("url_converted").value = convertedUrl.toString();
+            document.getElementById("copied_label").innerText = "";
+        }
+
+        function copy() {
+            var copyText = document.getElementById("url_converted");
+            copyText.select();
+            copyText.setSelectionRange(0, 99999);
+            navigator.clipboard.writeText(copyText.value);
+            document.getElementById("copied_label").innerText = "copied!";
+        }
+    </script>
+</body>
+
+</html>
